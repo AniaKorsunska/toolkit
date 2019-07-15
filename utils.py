@@ -1,6 +1,8 @@
 import os
 import logging
 from logging import config
+import json
+from bunch import Bunch
 
 
 def get_project_root():
@@ -31,3 +33,12 @@ def get_logger(name, log_file_name):
     logger = logging.getLogger(name)
 
     return logger
+
+
+def get_configuration_from_file(path):
+    """Reads and returns a bunch object configuration"""
+
+    with open(path) as json_file:
+        conf = json.load(json_file)
+
+    return Bunch(conf)

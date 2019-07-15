@@ -3,8 +3,10 @@ import json
 import twitter
 import urllib.parse
 import pandas as pd
+import os
 
 from src.etl.fetcher import Fetcher
+from utils import get_configuration_from_file, get_project_root
 
 
 class TwitterRepliesFetcher(Fetcher):
@@ -14,6 +16,10 @@ class TwitterRepliesFetcher(Fetcher):
 
     def __init__(self, **kwargs):
         Fetcher.__init__(self)
+
+        self.config = get_configuration_from_file(os.path.join(get_project_root(), 'configuration',
+                                                               'twitter-configuration.json'))
+        self.twitter_api = self._set_environment(self.config)
 
     def _fetch(self, **kwargs):
         """
@@ -47,7 +53,7 @@ class TwitterRepliesFetcher(Fetcher):
         while True:
             q = urllib.parse.urlencode({"q": "to:%s" % user})
             try:
-                replies = tweet.GetSearch(raw_query=q, since_id=tweet_id, max_id=max_id, count=100)
+                replies = self.twitter_api.GetSearch(raw_query=q, since_id=tweet_id, max_id=max_id, count=100)
             except twitter.error.TwitterError as ex:
                 self.logger.error("caught twitter api error: %s", ex)
                 time.sleep(60)
@@ -102,3 +108,13 @@ class TwitterRepliesFetcher(Fetcher):
                 tweet.user.location, tweet.user.followers_count, tweet.user.friends_count, tweet.user.created_at,
                 tweet.user.favourites_count, tweet.user.verified, tweet.user.statuses_count, tweet.retweet_count,
                 tweet.favorite_count, tweet.favorited, tweet.retweeted]
+
+    @staticmethod
+    def _set_environment(configuration):
+        return twitter.Api(
+            consumer_key=configuration.CONSUMER_KEY,
+            consumer_secret=configuration.CONSUMER_SECRET,
+            access_token_key=configuration.ACCESS_TOKEN,
+            access_token_secret=configuration.ACCESS_TOKEN_SECRET,
+            sleep_on_rate_limit=True
+        )

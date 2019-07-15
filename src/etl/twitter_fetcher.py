@@ -1,17 +1,24 @@
 import pandas as pd
-from time import sleep
-from bs4 import BeautifulSoup
-from urllib.request import urlopen
+import twitter
+import os
+import time
+import urllib.parse
 
 from src.etl.fetcher import Fetcher
+from utils import get_configuration_from_file, get_project_root
 
 
 class TwitterFetcher(Fetcher):
     """
     Twitter fetcher. Scraps data from twitter and returns a pd.Dataframe.
     """
+
     def __init__(self, **kwargs):
         Fetcher.__init__(self)
+
+        self.config = get_configuration_from_file(os.path.join(get_project_root(), 'configuration',
+                                                               'twitter-configuration.json'))
+        self.twitter_api = self._set_environment(self.config)
 
     def _fetch(self, **kwargs):
         """
@@ -21,22 +28,34 @@ class TwitterFetcher(Fetcher):
                        - sleep_time: int
         :return: pd.Dataframe
         """
-        return pd.DataFrame(self._scrap_twitter_replies(kwargs['url'], kwargs['sleep_time']))
+        return pd.DataFrame(self._get_tweets(kwargs['news_sites'], kwargs['sleep_time']))
 
-    @staticmethod
-    def _scrap_twitter_replies(url, sleep_time):
-        try:
-            soup = BeautifulSoup(urlopen(url), 'html.parser')
-        except:
-            return []
+    def _get_tweets(self, news_sites, sleep_time):
+        """
 
-        sleep(sleep_time)
-        replies = []
-        for d in soup.find_all('div', attrs={'class': 'js-tweet-text-container'}):
+        :param news_sites: str, twitter user accounts screen names
+        :param sleep_time:
+        :return:
+        """
+        tweets = []
+
+        for news_site in news_sites:
+            q = urllib.parse.urlencode({"q": "to:%s" % news_site})
             try:
-                replies.append(d.find('p', attrs={'class': "TweetTextSize js-tweet-text tweet-text",
-                                                  'data-aria-label-part': '0', 'lang': 'en'}).get_text())
-            except:
+                tweets = tweets + self.twitter_api.GetSearch(raw_query=q)
+            except twitter.error.TwitterError as ex:
+                self.logger.error("caught twitter api error: %s", ex)
+                time.sleep(sleep_time)
                 continue
 
-        return replies
+        return tweets
+
+    @staticmethod
+    def _set_environment(configuration):
+        return twitter.Api(
+            consumer_key=configuration.CONSUMER_KEY,
+            consumer_secret=configuration.CONSUMER_SECRET,
+            access_token_key=configuration.ACCESS_TOKEN,
+            access_token_secret=configuration.ACCESS_TOKEN_SECRET,
+            sleep_on_rate_limit=True
+        )
