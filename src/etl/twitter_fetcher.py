@@ -32,10 +32,11 @@ class TwitterFetcher(Fetcher):
 
     def _get_tweets(self, news_sites, sleep_time):
         """
+        It fetches tweets using Twitter API
 
         :param news_sites: str, twitter user accounts screen names
-        :param sleep_time:
-        :return:
+        :param sleep_time: int, seconds to delay execution
+        :return: list of Status objects
         """
         tweets = []
 
@@ -52,6 +53,7 @@ class TwitterFetcher(Fetcher):
 
     @staticmethod
     def _set_environment(configuration):
+        """ Utility method to set twitter related environment variables """
         return twitter.Api(
             consumer_key=configuration.CONSUMER_KEY,
             consumer_secret=configuration.CONSUMER_SECRET,

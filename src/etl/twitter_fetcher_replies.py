@@ -33,7 +33,7 @@ class TwitterRepliesFetcher(Fetcher):
         for tweet in kwargs['tweets']:
             replies.append(self._format_data(tweet))
             for reply in self._get_reply(tweet):
-                to_store = self._format_data(reply.AsJsonString())
+                to_store = self._format_data(reply)
                 replies.append(to_store)
 
         return pd.DataFrame(replies)
@@ -103,14 +103,15 @@ class TwitterRepliesFetcher(Fetcher):
         :param tweet:
         :return:
         """
-        return [tweet.created_at, tweet.id, tweet.full_text, len(tweet.entities.hashtags), len(tweet.entities.urls),
-                len(tweet.entities.user_mentions), tweet.source, tweet.user.id, tweet.user.screen_name,
+        return [tweet.created_at, tweet.id, tweet.full_text, len(tweet.hashtags), len(tweet.urls),
+                len(tweet.user_mentions), tweet.source, tweet.user.id, tweet.user.screen_name,
                 tweet.user.location, tweet.user.followers_count, tweet.user.friends_count, tweet.user.created_at,
                 tweet.user.favourites_count, tweet.user.verified, tweet.user.statuses_count, tweet.retweet_count,
                 tweet.favorite_count, tweet.favorited, tweet.retweeted]
 
     @staticmethod
     def _set_environment(configuration):
+        """ Utility method to set twitter related environment variables """
         return twitter.Api(
             consumer_key=configuration.CONSUMER_KEY,
             consumer_secret=configuration.CONSUMER_SECRET,
